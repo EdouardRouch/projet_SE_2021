@@ -2,10 +2,9 @@
 #define SHARED_LIST__H
 
 #include <stdlib.h>
-// #include <semaphore.h>
+#include <semaphore.h>
 
 typedef struct lcell lcell;
-
 
 // lcell_empty : creation d'un objet de type lcell, une liste simplement chaînée
 extern lcell *lcell_empty(void);
@@ -24,10 +23,11 @@ extern int lcell_insert_tail(lcell *p);
 //    de tête
 extern int lcell_allocate_head(lcell *p);
 
+// Libération des ressources liés à la première cellule de la liste associé à *p
+extern void dispose_head(lcell **p);
+
 // Libération des ressources allouées à *p ainsi que la liste associé
 //    et ses sémaphores
-extern  void dispose_list(lcell **p);
-
-
+extern void dispose_list(lcell **p);
 
 #endif

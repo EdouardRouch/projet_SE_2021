@@ -1,3 +1,5 @@
+#include <stdlib.h>
+#include <semaphore.h>
 #include "shared_list.h"
 
 #define LIST_SIZE 20
@@ -116,8 +118,30 @@ int lcell_insert_tail(lcell *p) {
   return 0;
 }
 
-void dispose_list(lcell **pp) {
+void dispose_head(lcell **p) {
+  if (lcell_is_empty(*pp)) {
+    return;
+  }
+  if (sem_wait(&p->full) != 0) {
+    return -1;
+  }
   if (sem_wait(&p->mutex) != 0) {
+    return -1;
+  }
+  cell *t = (*pp)->head;
+  (*pp)->head = (*pp)->head->next;
+  free(t);
+  if (sem_post(&p->mutex) != 0) {
+    return -1;
+  }
+  if (sem_post(&p->empty) != 0) {
+    return -1;
+  }
+}
+
+void dispose_list(lcell **pp) {
+
+  if (sem_wait(pp->mutex) != 0) {
     return -1;
   }
 
