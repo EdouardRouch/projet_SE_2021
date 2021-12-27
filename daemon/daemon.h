@@ -1,3 +1,6 @@
+#ifndef CLIENT__H
+#define CLIENT__H
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -7,3 +10,7 @@
 #include <syslog.h>
 
 int init_daemon();
+
+
+
+#endif

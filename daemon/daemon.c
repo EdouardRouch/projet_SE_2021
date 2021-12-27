@@ -6,6 +6,39 @@
 #include <sys/stat.h>
 #include <syslog.h>
 #include "daemon.h"
+#include "shared_list.h"
+
+
+int main(void) {
+  lcell *p = create_empty_list();
+  if (p == NULL) {
+    fprintf(stderr, "erreur\n");
+  }
+  lcell_insert_tail(p);
+
+  char buf;
+  while(scanf("%c", &buf) != EOF);
+
+  if (lcell_is_empty(p)) {
+    printf("Vide ! \n");
+  } else {
+    printf("Plein ! \n");
+  }
+  dispose_head(&p);
+
+  if (lcell_is_empty(p)) {
+    printf("Vide ! \n");
+  } else {
+    printf("Plein ! \n");
+  }
+  dispose_list(&p);
+
+
+  return 0;
+}
+
+
+
 
 int init_daemon() {
 
@@ -15,11 +48,11 @@ int init_daemon() {
         exit(EXIT_FAILURE);
 
     case 0:
-        if (setsid(0) == -1) {
+        if (setsid() == -1) {
             perror("setsid");
             exit(EXIT_FAILURE);
         }
-        
+
         signal(SIGHUP, SIG_IGN);
         /*TODO: implémenter la gestion des signaux */
 
@@ -27,27 +60,30 @@ int init_daemon() {
         case -1:
             perror("fork");
             exit(EXIT_FAILURE);
-        
+
         case 0:
             umask(0);
 
             // Change le répertoire de travail du démon pour /tmp
-            chdir("/tmp");
+            if(chdir("/tmp") == -1) {
+              perror("chdir");
+              exit(EXIT_FAILURE);
+            }
 
             // Ferme tous les descripteurs de fichiers éventuellement ouverts
-            for (int i = sysconf(_SC_OPEN_MAX); i>=0; i--) {
-                if (close(i) == -1) {
+            for (long int i = sysconf(_SC_OPEN_MAX); i>=0; i--) {
+                if (close((int) i) == -1) {
                     perror("close");
                     exit(EXIT_FAILURE);
                 }
             }
-            
+
             return getpid();
 
         default:
             exit(EXIT_FAILURE);
         }
-    
+
     default:
         exit(EXIT_FAILURE);
 
