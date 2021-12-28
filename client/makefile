@@ -1,4 +1,4 @@
-shared_list = ../shared_list/
+shared_fifo = ../shared_fifo/
 CC = gcc
 
 CPPFLAGS = -D_XOPEN_SOURCE -D_FORTIFY_SOURCE=2
@@ -6,10 +6,10 @@ CPPFLAGS = -D_XOPEN_SOURCE -D_FORTIFY_SOURCE=2
 CFLAGS = -std=c18 -Wpedantic -Wall -Wextra -Wconversion \
          -Wwrite-strings -Werror -Wfatal-errors \
           -fstack-protector-all -fpie -O2 -g \
-					-I$(shared_list)
+					-I$(shared_fifo)
 LDFLAGS = -lrt -pthread
-VPATH =$(shared_list)
-objects = $(shared_list)shared_list.o client.o
+VPATH =$(shared_fifo)
+objects = $(shared_fifo)shared_fifo.o client.o
 executable = client
 
 all: $(executable)
@@ -20,5 +20,5 @@ clean:
 $(executable): $(objects)
 	$(CC) $(objects) $(LDFLAGS) -o $(executable)
 
-shared_list.o: shared_list.c shared_list.h
-client.o: client.c shared_list.h
+shared_fifo.o: shared_fifo.c shared_fifo.h
+client.o: client.c shared_fifo.h

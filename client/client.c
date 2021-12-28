@@ -1,19 +1,19 @@
 #include <stdio.h>
+#include <unistd.h>
 #include "client.h"
-#include "shared_list.h"
+#include "shared_fifo.h"
 
 
 int main(void) {
-  lcell *p = lcell_get_list();
+  fifo *p = fifo_get();
   if (p == NULL) {
     printf("erreur\n");
     exit(EXIT_FAILURE);
   }
-  // if (lcell_is_empty(p)) {
-  //   printf("Vide ! \n");
-  // } else {
-  //   printf("Plein ! \n");
-  // }
+
+  pid_t pid = getpid();
+  fifo_request(p, pid);
+  while (getchar() != EOF);
 
 
   return 0;

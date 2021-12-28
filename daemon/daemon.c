@@ -6,32 +6,23 @@
 #include <sys/stat.h>
 #include <syslog.h>
 #include "daemon.h"
-#include "shared_list.h"
+#include "shared_fifo.h"
 
 
 int main(void) {
-  lcell *p = create_empty_list();
+
+  /* Test */
+  fifo *p = fifo_empty();
   if (p == NULL) {
     fprintf(stderr, "erreur\n");
   }
-  lcell_insert_tail(p);
 
-  char buf;
-  while(scanf("%c", &buf) != EOF);
+  while (getchar() != EOF);
 
-  if (lcell_is_empty(p)) {
-    printf("Vide ! \n");
-  } else {
-    printf("Plein ! \n");
-  }
-  dispose_head(&p);
+  pid_t pid = fifo_next_request(p);
+  printf("pid : %u \n", pid);
 
-  if (lcell_is_empty(p)) {
-    printf("Vide ! \n");
-  } else {
-    printf("Plein ! \n");
-  }
-  dispose_list(&p);
+  dispose_fifo(&p);
 
 
   return 0;
