@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include "client.h"
 #include "shared_fifo.h"
+#include "client_resources.h"
 
 
 int main(void) {

@@ -7,7 +7,6 @@
 
 typedef struct client_resources client_resources;
 
-
 typedef struct fifo fifo;
 
 // fifo_empty : creation d'un objet de type fifo dans un espace

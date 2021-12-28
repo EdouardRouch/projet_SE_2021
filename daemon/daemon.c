@@ -7,6 +7,7 @@
 #include <syslog.h>
 #include "daemon.h"
 #include "shared_fifo.h"
+#include "client_resources.h"
 
 
 int main(void) {

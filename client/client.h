@@ -2,6 +2,7 @@
 #define CLIENT__H
 
 #include "shared_fifo.h"
+#include "client_resources.h"
 
 // Envoi la requête du client à travers la ressource partagée client_resources
 int send_request(const char *request, client_resources *clr);
