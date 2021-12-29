@@ -1,5 +1,7 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <linux/limits.h>
 #include "client.h"
 #include "shared_fifo.h"
@@ -34,7 +36,7 @@ int open_pipe_response(client_resources *clr) {
 }
 
 int send_request(const char *request, int fd_request) {
-  for (int i = 0; i < sizeof(request); ++i) {
+  for (size_t i = 0; i < sizeof(request); ++i) {
     if (write(fd_request, request + i, 1) == -1) {
       return -1;
     }
@@ -42,12 +44,12 @@ int send_request(const char *request, int fd_request) {
   return 0;
 }
 
-char *receive_response(int fd_response) {
+void receive_response(int fd_response) {
   char buffer[2 * MUL * PIPE_BUF];
   ssize_t n;
   ssize_t pos = 0;
   while ((n = read(fd_response, buffer + pos, (size_t) (2 * MUL * PIPE_BUF - pos))) > 0) {
     pos += n;
   }
-  return buffer;
+  printf("%s\n", buffer);
 }

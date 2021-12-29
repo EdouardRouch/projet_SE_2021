@@ -17,6 +17,6 @@ extern int send_request(const char *request, int fd_request);
 
 // receive_response : récupère la réponse à la requête précédente à travers
 //    le tube de réponse
-extern char *receive_response(int fd_response);
+extern void receive_response(int fd_response);
 
 #endif
