@@ -9,11 +9,14 @@ typedef struct client_resources client_resources;
 
 // client_resources_empty : creation d'un objet de type client_resources dans un
 //    espace de memoire partagee avec pour suffixe du nom le pid du client
-extern client_resources *client_resources_empty(pid_t pid);
+extern client_resources *client_resources_create(pid_t pid);
 
 // client_resources_get : renvoie un pointeur sur l'objet client_resources avec
 //    comme suffixe pid dans la memoire partagee si celui existe
 //    sinon renvoie null
 extern client_resources *client_resources_get(pid_t pid);
+
+// client_resources_dispose : libération des ressources allouées à *pp
+extern void client_resources_dispose(client_resources **pp);
 
 #endif
