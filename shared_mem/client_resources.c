@@ -112,7 +112,11 @@ client_resources *client_resources_get(pid_t pid) {
   return p;
 }
 
-void client_resources_dispose(client_resources **pp) {
+void client_resources_dispose(client_resources **pp, pid_t pid) {
+    size_t pid_length = (size_t) ((ceil(log10(pid)) + 1) * sizeof(char));
+    char name_shm[18 + pid_length + 1];
+    snprintf(name_shm, 18 + pid_length + 1, "%s_%d", NAME_SHM, pid);
+    shm_unlink(name_shm);
     munmap(*pp, SIZE_SHM);
     *pp = NULL;
 }

@@ -27,6 +27,6 @@ extern client_resources *client_resources_create(pid_t pid);
 extern client_resources *client_resources_get(pid_t pid);
 
 // client_resources_dispose : libération des ressources allouées à *pp
-extern void client_resources_dispose(client_resources **pp);
+extern void client_resources_dispose(client_resources **pp, pid_t pid);
 
 #endif

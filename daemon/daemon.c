@@ -5,13 +5,19 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <syslog.h>
+#include <fcntl.h>
+#include <linux/limits.h>
 #include "daemon.h"
 #include "shared_fifo.h"
 #include "client_resources.h"
 
+#define MUL 100
 
 int main(void) {
-
+  if(chdir("/tmp") == -1) {
+    perror("chdir");
+    exit(EXIT_FAILURE);
+  }
   /* Test */
   fifo *p = fifo_empty();
   if (p == NULL) {
@@ -22,7 +28,36 @@ int main(void) {
 
   pid_t pid = fifo_next_request(p);
   printf("pid : %u \n", pid);
+  client_resources *clr = client_resources_create(pid);
 
+  int fd_request = open_pipe_request(clr);
+  if (fd_request == -1) {
+    perror("open");
+  }
+  int fd_response = open_pipe_response(clr);
+  if (fd_request == -1) {
+    perror("open");
+  }
+  printf("Ressources allouées ! \n");
+  while (getchar() != EOF);
+
+  printf("Requête : ");
+  receive_request(fd_request);
+  printf("Requête reçu\n");
+  while (getchar() != EOF);
+
+  send_response("Bien reçu ! \n", fd_response);
+  printf("Réponse bien envoyée !\n");
+  while (getchar() != EOF);
+
+  close(fd_request);
+  close(fd_response);
+
+  while (getchar() != EOF);
+
+
+
+  client_resources_dispose(&clr, pid);
   dispose_fifo(&p);
 
 
@@ -30,6 +65,45 @@ int main(void) {
 }
 
 
+int open_pipe_request(client_resources *clr) {
+  int fd = open(clr->pipe_request, O_RDONLY);
+  return fd;
+}
+
+int open_pipe_response(client_resources *clr) {
+  int fd = open(clr->pipe_response, O_WRONLY);
+  // unlink(clr->pipe_response);
+  return fd;
+}
+
+int send_response(const char *response, int fd_response) {
+  // for (size_t i = 0; i <= sizeof(fd_response); ++i) {
+  //   if (write(fd_response, response + i, 1) == -1) {
+  //     return -1;
+  //   }
+  // }
+    if (write(fd_response, response, sizeof(response)) == -1) {
+      return -1;
+    }
+
+
+  return 0;
+}
+
+void receive_request(int fd_request) {
+  // char c;
+  // ssize_t n = 1;
+  // while ((n = read(fd_request, &c, 1)) > 0) {
+  //     printf("%c", c);
+  // }
+  // printf("\n");
+  char buffer[50];
+  if(read(fd_request, buffer, sizeof(buffer)) == -1) {
+    printf("Erreur lecture\n");
+  }
+  printf("%s\n", buffer);
+
+}
 
 
 int init_daemon() {
