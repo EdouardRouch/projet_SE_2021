@@ -7,61 +7,20 @@
 #include <syslog.h>
 #include <fcntl.h>
 #include <linux/limits.h>
+#include <pthread.h>
 #include "daemon.h"
-#include "shared_fifo.h"
-#include "client_resources.h"
+#include <sys/wait.h>
+#include "../shared_mem/shared_fifo.h"
+#include "../shared_mem/client_resources.h"
 
 #define MUL 100
+#define BUF_SIZE 4096
 
 int main(void) {
-  if(chdir("/tmp") == -1) {
-    perror("chdir");
-    exit(EXIT_FAILURE);
-  }
-  /* Test */
-  fifo *p = fifo_empty();
-  if (p == NULL) {
-    fprintf(stderr, "erreur\n");
-  }
 
-  while (getchar() != EOF);
+  init_daemon();
 
-  pid_t pid = fifo_next_request(p);
-  printf("pid : %u \n", pid);
-  client_resources *clr = client_resources_create(pid);
-
-  int fd_request = open_pipe_request(clr);
-  if (fd_request == -1) {
-    perror("open");
-  }
-  int fd_response = open_pipe_response(clr);
-  if (fd_request == -1) {
-    perror("open");
-  }
-  printf("Ressources allouées ! \n");
-  while (getchar() != EOF);
-
-  printf("Requête : ");
-  receive_request(fd_request);
-  printf("Requête reçu\n");
-  while (getchar() != EOF);
-
-  send_response("Bien reçu ! \n", fd_response);
-  printf("Réponse bien envoyée !\n");
-  while (getchar() != EOF);
-
-  close(fd_request);
-  close(fd_response);
-
-  while (getchar() != EOF);
-
-
-
-  client_resources_dispose(&clr, pid);
-  dispose_fifo(&p);
-
-
-  return 0;
+  return EXIT_SUCCESS;
 }
 
 
@@ -106,7 +65,7 @@ void receive_request(int fd_request) {
 }
 
 
-int init_daemon() {
+void init_daemon() {
 
     switch(fork()){
     case -1:
@@ -136,22 +95,72 @@ int init_daemon() {
               exit(EXIT_FAILURE);
             }
 
-            // Ferme tous les descripteurs de fichiers éventuellement ouverts
-            for (long int i = sysconf(_SC_OPEN_MAX); i>=0; i--) {
-                if (close((int) i) == -1) {
-                    perror("close");
-                    exit(EXIT_FAILURE);
-                }
+            fifo *p = fifo_empty();
+            if (p == NULL) {
+              fprintf(stderr, "erreur\n");
             }
 
-            return getpid();
+            while (1) {
+              pid_t pid = fifo_next_request(p);
+              printf("pid : %u \n", pid);
+              client_resources *clr = client_resources_create(pid);
+
+              pthread_t th;
+              if (pthread_create (&th , NULL , treat_request , clr) != 0) {
+                fprintf (stderr , " Erreur \n");
+                exit( EXIT_FAILURE );
+              }
+            }
 
         default:
-            exit(EXIT_FAILURE);
+            exit(EXIT_SUCCESS);
         }
 
     default:
-        exit(EXIT_FAILURE);
+        exit(EXIT_SUCCESS);
 
     }
+}
+
+void * treat_request(void * arg) {
+  client_resources *clr = (client_resources *) arg;
+  int fd_request = open_pipe_request(clr);
+  if (fd_request == -1) {
+    perror("open");
+  }
+  int fd_response = open_pipe_response(clr);
+  if (fd_request == -1) {
+    perror("open");
+  }
+  printf("Ressources allouées ! \n");
+  
+  while (1) {
+    char *request[BUF_SIZE];
+    while (read(fd_request, request, PIPE_BUF) > 0);
+
+    switch (fork()) {
+    case -1:
+        perror("fork");
+        exit(EXIT_FAILURE);
+    
+    case 0:
+        if (dup2(fd_response, STDOUT_FILENO) == -1) {
+            perror("dup2");
+            exit(EXIT_FAILURE);
+        }
+
+        execv(request[0], request);
+        break;
+    default:
+      if (wait(NULL) == -1) {
+        perror("wait");
+        exit(EXIT_FAILURE);
+      }
+
+      close(fd_request);
+      close(fd_response);
+      break;
+    }
+  }
+  
 }
