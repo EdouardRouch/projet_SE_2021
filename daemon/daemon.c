@@ -16,6 +16,9 @@
 #define MUL 100
 #define BUF_SIZE 256
 
+void handler(int num);
+
+
 int main(void) {
 
   init_daemon();
@@ -63,12 +66,9 @@ void receive_request(int fd_request) {
   printf("%s\n", buffer);
 
 }
-
+fifo *p;
 
 void init_daemon() {
-
-  
-
     switch(fork()){
     case -1:
         perror("fork");
@@ -82,6 +82,19 @@ void init_daemon() {
 
         signal(SIGHUP, SIG_IGN);
         /*TODO: implémenter la gestion des signaux */
+        sigset_t masque;
+        sigfillset(&masque);
+        sigdelset(&masque, SIGINT);
+        sigdelset(&masque, SIGTERM);
+        sigprocmask(SIG_SETMASK, &masque, NULL);
+
+        struct sigaction sa;
+        sa.sa_handler = handler;
+        sigfillset(&sa.sa_mask);
+        sa.sa_flags = 0;
+        sigaction(SIGINT, &sa, NULL);
+        sigaction(SIGTERM, &sa, NULL);
+
 
         switch (fork()) {
         case -1:
@@ -97,7 +110,9 @@ void init_daemon() {
               exit(EXIT_FAILURE);
             }
 
-            fifo *p = fifo_empty();
+            // fifo *p = fifo_empty();
+            p = fifo_empty();
+
             if (p == NULL) {
               fprintf(stderr, "erreur\n");
             }
@@ -106,7 +121,7 @@ void init_daemon() {
               printf("next_request");
               pid_t pid = fifo_next_request(p);
               client_resources *clr = client_resources_create(pid);
-  
+
 
               pthread_t th;
               if (pthread_create (&th , NULL , treat_request , clr) != 0) {
@@ -135,7 +150,7 @@ void init_daemon() {
 
 void * treat_request(void * arg) {
 
-  
+
   client_resources *clr = (client_resources *) arg;
   int fd_request = open(clr->pipe_request, O_RDONLY);
   if (fd_request == -1) {
@@ -146,9 +161,6 @@ void * treat_request(void * arg) {
     perror("open");
   }
 
-  
-
-  
   while (1) {
     char *request[BUF_SIZE];
     ssize_t n = read(fd_request, request, BUF_SIZE - 1);
@@ -160,13 +172,12 @@ void * treat_request(void * arg) {
       perror("write");
       exit(EXIT_FAILURE);
     }
-    
-   
+
     switch (fork()) {
     case -1:
         perror("fork");
         exit(EXIT_FAILURE);
-    
+
     case 0:
       // if(close(fd_request) == -1) {
       //   perror("close");
@@ -180,10 +191,13 @@ void * treat_request(void * arg) {
           perror("dup2");
           exit(EXIT_FAILURE);
       }
-      printf("Coucou bande de nouilles");
+
+
+      printf("Coucou bande de nouilles \n");
       execv(request[0], request);
+      perror("execv");
       break;
-      
+
     default:
       if (wait(NULL) == -1) {
         perror("wait");
@@ -192,9 +206,21 @@ void * treat_request(void * arg) {
       break;
     }
   }
-  
+
   // close(fd_request);
   // close(fd_response);
 
   return NULL;
+}
+
+
+void handler(int num) {
+	switch(num) {
+		case SIGINT :
+  			dispose_fifo(&p);
+			exit(EXIT_SUCCESS);
+		case SIGTERM :
+  			dispose_fifo(&p);
+			exit(EXIT_SUCCESS);
+	}
 }
