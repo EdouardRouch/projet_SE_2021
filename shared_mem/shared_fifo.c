@@ -34,7 +34,7 @@ struct fifo {
 };
 
 fifo *fifo_empty(void) {
-  int shm_fd = shm_open(NAME_FIFO, O_RDWR | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
+  int shm_fd = shm_open(NAME_FIFO, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
   if (shm_fd == -1) {
     perror("shm_open");
     return NULL;

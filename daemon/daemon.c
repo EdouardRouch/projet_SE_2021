@@ -14,7 +14,7 @@
 #include "../shared_mem/client_resources.h"
 
 #define MUL 100
-#define BUF_SIZE 4096
+#define BUF_SIZE 256
 
 int main(void) {
 
@@ -67,6 +67,8 @@ void receive_request(int fd_request) {
 
 void init_daemon() {
 
+  
+
     switch(fork()){
     case -1:
         perror("fork");
@@ -101,20 +103,29 @@ void init_daemon() {
             }
 
             while (1) {
+              printf("next_request");
               pid_t pid = fifo_next_request(p);
-              printf("pid : %u \n", pid);
               client_resources *clr = client_resources_create(pid);
+  
 
               pthread_t th;
               if (pthread_create (&th , NULL , treat_request , clr) != 0) {
                 fprintf (stderr , " Erreur \n");
                 exit( EXIT_FAILURE );
               }
+
+              if (pthread_join(th, NULL) == -1 ) {
+                perror("pthread_join");
+                exit(EXIT_FAILURE);
+              }
+
             }
+            break;
 
         default:
             exit(EXIT_SUCCESS);
         }
+        break;
 
     default:
         exit(EXIT_SUCCESS);
@@ -123,44 +134,67 @@ void init_daemon() {
 }
 
 void * treat_request(void * arg) {
+
+  
   client_resources *clr = (client_resources *) arg;
-  int fd_request = open_pipe_request(clr);
+  int fd_request = open(clr->pipe_request, O_RDONLY);
   if (fd_request == -1) {
     perror("open");
   }
-  int fd_response = open_pipe_response(clr);
+  int fd_response = open(clr->pipe_response, O_WRONLY);
   if (fd_request == -1) {
     perror("open");
   }
-  printf("Ressources allouées ! \n");
+
+  
+
   
   while (1) {
     char *request[BUF_SIZE];
-    while (read(fd_request, request, PIPE_BUF) > 0);
-
+    ssize_t n = read(fd_request, request, BUF_SIZE - 1);
+    if (n == -1) {
+      perror("read");
+      exit(EXIT_FAILURE);
+    }
+    if (write(fd_response, request, sizeof(request)) == -1) {
+      perror("write");
+      exit(EXIT_FAILURE);
+    }
+    
+   
     switch (fork()) {
     case -1:
         perror("fork");
         exit(EXIT_FAILURE);
     
     case 0:
-        if (dup2(fd_response, STDOUT_FILENO) == -1) {
-            perror("dup2");
-            exit(EXIT_FAILURE);
-        }
-
-        execv(request[0], request);
-        break;
+      // if(close(fd_request) == -1) {
+      //   perror("close");
+      //   exit(EXIT_FAILURE);
+      // }
+      // if (write(fd_response, request, sizeof(request)) == -1){
+      //   perror("write");
+      //   exit(EXIT_FAILURE);
+      // }
+      if (dup2(STDOUT_FILENO, fd_response) == -1) {
+          perror("dup2");
+          exit(EXIT_FAILURE);
+      }
+      printf("Coucou bande de nouilles");
+      execv(request[0], request);
+      break;
+      
     default:
       if (wait(NULL) == -1) {
         perror("wait");
         exit(EXIT_FAILURE);
       }
-
-      close(fd_request);
-      close(fd_response);
       break;
     }
   }
   
+  // close(fd_request);
+  // close(fd_response);
+
+  return NULL;
 }

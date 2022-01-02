@@ -58,7 +58,7 @@ client_resources *client_resources_create(pid_t pid) {
 
     initialize_char_name(p);
     char name_pipe_req[sizeof(PIPE_REQ_NAME) + pid_length + 1];
-    snprintf(name_pipe_req, sizeof(PIPE_REQ_NAME) + pid_length + 1, "%s_%d", PIPE_REQ_NAME, pid);
+    snprintf(name_pipe_req, sizeof(PIPE_REQ_NAME) + pid_length + 1, "%s%d", PIPE_REQ_NAME, pid);
     if (mkfifo(name_pipe_req, S_IRUSR | S_IWUSR) == -1) {
       perror("mkfifo");
       exit(EXIT_FAILURE);
@@ -67,7 +67,7 @@ client_resources *client_resources_create(pid_t pid) {
     strncpy(p->pipe_request, name_pipe_req, sizeof(PIPE_REQ_NAME) + pid_length + 1);
 
     char name_pipe_res[sizeof(PIPE_RES_NAME) + pid_length + 1];
-    snprintf(name_pipe_res, sizeof(PIPE_RES_NAME) + pid_length + 1, "%s_%d", PIPE_RES_NAME, pid);
+    snprintf(name_pipe_res, sizeof(PIPE_RES_NAME) + pid_length + 1, "%s%d", PIPE_RES_NAME, pid);
     if (mkfifo(name_pipe_res, S_IRUSR | S_IWUSR) == -1) {
       perror("mkfifo");
       exit(EXIT_FAILURE);

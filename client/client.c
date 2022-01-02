@@ -23,11 +23,12 @@ int main(void) {
   pid_t pid = getpid();
   fifo_request(p, pid);
 
-  printf("Requête bien demandée ! \n");
-  while (getchar() != EOF);
-
+  printf("Ouverture du client...\n");
+  printf("Connexion au démon...\n");
+  sleep(1);
   client_resources *clr = client_resources_get(pid);
-
+  printf("Client\nrequest: %s\nresponse : %s\n", clr->pipe_request, clr->pipe_response);
+  
   int fd_request = open_pipe_request(clr);
   if (fd_request == -1) {
     perror("open");
@@ -37,20 +38,39 @@ int main(void) {
   if (fd_response == -1) {
     perror("open");
   }
-  printf("Connection aux tubes terminée !\n");
+  printf("Connexion au démon établie !\n\n");
 
-  send_request("Bonjour ! \n", fd_request);
-  printf("Requêtes envoyées ! \n");
-  while (getchar() != EOF);
+  // if (dup2(fd_response, STDOUT_FILENO) == -1) {
+  //   perror("dup2");
+  //   exit(EXIT_FAILURE);
+  // }
 
-  printf("Réponse : ");
-  receive_response(fd_response);
+  while (1) {
+    printf("Tapez votre commande:\n");
+    char buffer[256];
+    if (fgets(buffer, 256, stdin)  == NULL) {
+      perror("fgets");
+      exit(EXIT_FAILURE);
+    }
+    
+    if (write(fd_request, buffer, sizeof(buffer)) == -1){
+      perror("write");
+      exit(EXIT_FAILURE);
+    }
+    printf("Requête correctement envoyée.\n");
+
+    if (read(fd_response, buffer, sizeof(buffer)) < 0) {
+      perror("read");
+      exit(EXIT_FAILURE);
+    }
+    printf("%s", buffer);
+  }
+  
+  
 
   printf("Au revoir !\n" );
   close(fd_request);
   close(fd_response);
-
-  while (getchar() != EOF);
 
 
   return 0;
