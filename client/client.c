@@ -28,7 +28,7 @@ int main(void) {
   sleep(1);
   client_resources *clr = client_resources_get(pid);
   printf("Client\nrequest: %s\nresponse : %s\n", clr->pipe_request, clr->pipe_response);
-  
+
   int fd_request = open_pipe_request(clr);
   if (fd_request == -1) {
     perror("open");
@@ -48,11 +48,11 @@ int main(void) {
   while (1) {
     printf("Tapez votre commande:\n");
     char buffer[256];
-    if (fgets(buffer, 256, stdin)  == NULL) {
+    if (fgets(buffer, 255, stdin)  == NULL) {
       perror("fgets");
       exit(EXIT_FAILURE);
     }
-    
+
     if (write(fd_request, buffer, sizeof(buffer)) == -1){
       perror("write");
       exit(EXIT_FAILURE);
@@ -63,10 +63,8 @@ int main(void) {
       perror("read");
       exit(EXIT_FAILURE);
     }
-    printf("%s", buffer);
+    printf("%s \n", buffer);
   }
-  
-  
 
   printf("Au revoir !\n" );
   close(fd_request);

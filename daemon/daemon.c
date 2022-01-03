@@ -1,15 +1,16 @@
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <signal.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <syslog.h>
 #include <fcntl.h>
 #include <linux/limits.h>
 #include <pthread.h>
 #include "daemon.h"
-#include <sys/wait.h>
 #include "../shared_mem/shared_fifo.h"
 #include "../shared_mem/client_resources.h"
 
@@ -18,6 +19,7 @@
 
 void handler(int num);
 
+fifo *p;
 
 int main(void) {
 
@@ -66,7 +68,6 @@ void receive_request(int fd_request) {
   printf("%s\n", buffer);
 
 }
-fifo *p;
 
 void init_daemon() {
     switch(fork()){
@@ -82,11 +83,11 @@ void init_daemon() {
 
         signal(SIGHUP, SIG_IGN);
         /*TODO: implémenter la gestion des signaux */
-        sigset_t masque;
-        sigfillset(&masque);
-        sigdelset(&masque, SIGINT);
-        sigdelset(&masque, SIGTERM);
-        sigprocmask(SIG_SETMASK, &masque, NULL);
+        sigset_t mask;
+        sigfillset(&mask);
+        sigdelset(&mask, SIGINT);
+        sigdelset(&mask, SIGTERM);
+        sigprocmask(SIG_SETMASK, &mask, NULL);
 
         struct sigaction sa;
         sa.sa_handler = handler;
@@ -110,7 +111,6 @@ void init_daemon() {
               exit(EXIT_FAILURE);
             }
 
-            // fifo *p = fifo_empty();
             p = fifo_empty();
 
             if (p == NULL) {
@@ -162,16 +162,37 @@ void * treat_request(void * arg) {
   }
 
   while (1) {
-    char *request[BUF_SIZE];
+    char request[BUF_SIZE];
     ssize_t n = read(fd_request, request, BUF_SIZE - 1);
+
     if (n == -1) {
       perror("read");
       exit(EXIT_FAILURE);
     }
-    if (write(fd_response, request, sizeof(request)) == -1) {
+    // printf("%s\n", request);
+    if (write(fd_response, request,(size_t) n) == -1) {
       perror("write");
       exit(EXIT_FAILURE);
     }
+    // char buffer[BUF_SIZE][BUF_SIZE];
+    char *buffer[256];
+    char *token;
+    char *rest = request;
+    size_t c = 0;
+    while ((token = strtok_r(rest, " ", &rest)) != NULL) {
+        // printf("test : %s\n", token);
+        buffer[c] = malloc(sizeof(token) + 2);
+        if (buffer[c] == NULL) {
+          perror("malloc");
+          exit(EXIT_FAILURE);
+        }
+        strncpy(buffer[c], token, sizeof(token) + 1);
+        ++c;
+    }
+    buffer[c] = NULL;
+    // for (size_t i = 0; i <= c; i++) {
+    //       printf("%s\n", buffer[i]);
+    // }
 
     switch (fork()) {
     case -1:
@@ -187,14 +208,17 @@ void * treat_request(void * arg) {
       //   perror("write");
       //   exit(EXIT_FAILURE);
       // }
-      if (dup2(STDOUT_FILENO, fd_response) == -1) {
+      if (dup2(fd_response, STDOUT_FILENO) == -1) {
           perror("dup2");
           exit(EXIT_FAILURE);
       }
-
-
-      printf("Coucou bande de nouilles \n");
-      execv(request[0], request);
+      // Rajouter log.txt pour stderr ?
+      if (dup2(fd_response, STDERR_FILENO) == -1) {
+          perror("dup2");
+          exit(EXIT_FAILURE);
+      }
+      // printf("Coucou bande de nouilles \n");
+      execvp(buffer[0], buffer);
       perror("execv");
       break;
 
@@ -202,6 +226,10 @@ void * treat_request(void * arg) {
       if (wait(NULL) == -1) {
         perror("wait");
         exit(EXIT_FAILURE);
+      }
+
+      for (size_t i = 0; i <= c; i++) {
+            free(buffer[i]);
       }
       break;
     }
