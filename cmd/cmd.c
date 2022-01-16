@@ -92,7 +92,6 @@ bool not_selected_caract_pid(const char *s) {
     return true;
 }
 
-
 void info_user_uid(uid_t uid) {
     struct passwd *pwd = getpwuid(uid);
     if (pwd == NULL) {

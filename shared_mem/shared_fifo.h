@@ -5,7 +5,10 @@
 #include <semaphore.h>
 #include <stdbool.h>
 
-typedef struct client_resources client_resources;
+#define PIPE_SIZE_NAME 40
+#define SIZE_BUFFER 20
+#define NAME_FIFO "/mon_shm_fifo_589422985365427"
+#define SIZE_FIFO sizeof(fifo) + SIZE_BUFFER * sizeof(pid_t)
 
 typedef struct fifo fifo;
 
