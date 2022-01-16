@@ -15,9 +15,11 @@
 #include <fcntl.h>
 #include <linux/limits.h>
 #include <pthread.h>
+#include <ctype.h>
 #include "daemon.h"
 #include "../shared_mem/shared_fifo.h"
 #include "../shared_mem/client_resources.h"
+#include "../cmd/cmd.h"
 
 #define MUL 100
 #define BUF_SIZE 256
@@ -164,9 +166,33 @@ void *treat_request(void * arg) {
                     perror("dup2");
                     exit(EXIT_FAILURE);
                 }
-                execvp(buffer[0], buffer);
-                perror("execv");
-                exit(EXIT_FAILURE);
+
+                if (strcmp("info_proc", buffer[0]) == 0) {
+                    if (isdigit(buffer[1][0]) != 0) {
+                        pid_t pid = (pid_t) atol(buffer[1]);
+                        info_proc(pid);
+                    } else {
+                        fprintf(stderr, "Arguments invalide pour %s\n"
+                                , buffer[0]);
+                        exit(EXIT_FAILURE);
+                    }
+                } else if (strcmp("info_user", buffer[0]) == 0) {
+                    if (isdigit(buffer[1][0]) != 0) {
+                        uid_t uid = (uid_t) atol(buffer[1]);
+                        info_user_uid(uid);
+                    } else if (isalpha(buffer[1][0]) != 0) {
+                        info_user_name(buffer[1]);
+                    } else {
+                        fprintf(stderr, "Arguments invalide pour %s\n"
+                                , buffer[0]);
+                        exit(EXIT_FAILURE);
+                    }
+                } else {
+                    execvp(buffer[0], buffer);
+                    perror("execv");
+                    exit(EXIT_FAILURE);
+                }
+                exit(EXIT_SUCCESS);
                 break;
             default:
                 if (wait(NULL) == -1) {
@@ -178,7 +204,6 @@ void *treat_request(void * arg) {
                     free(buffer[i]);
                 }
                 break;
-
         }
     }
     exit:

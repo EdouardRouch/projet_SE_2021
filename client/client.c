@@ -61,7 +61,7 @@ int main(void) {
             exit(EXIT_FAILURE);
         }
         buffres[n] = '\0';
-        printf("Réponse : %s \n", buffres);
+        printf("Réponse : \n %s  \n", buffres);
     }
 leave:
     if (!feof(stdin)) {
